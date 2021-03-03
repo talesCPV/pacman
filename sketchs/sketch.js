@@ -32,6 +32,7 @@ const squares = [[13,0,1,4],
     [2,27,9,1],[7,24,1,3]];
 
 let dots;
+let pills;
 let hiscore = 0;
 
 //********* FUNCTIONS **********//
@@ -137,7 +138,8 @@ function fillBoard(){
                 dots[y].push(x);
             }
         }
-    }      
+    }
+    pills = [[1,3],[26,3],[1,28],[26,28]];
 }
 
 function placar(){
@@ -166,9 +168,7 @@ function mirror(T,D,R,C){
         line(screen[0]-x,y,screen[0]-w,h);
     }else if(T == "R"){
         rect(x,y,w,h,R);        
-
         rect(2*C-x-w, y, w, h, R);
-//        rect(screen[0]-x-w,y,w,h,R);
     }
 
 }
@@ -181,6 +181,16 @@ function drawDots(diam = 2){
             circle(bd.x + dots[y][x] * bd.p , bd.y + y* bd.p,diam);
         }
     }
+
+    stroke(255,0,0);
+
+    for(let i=0; i<pills.length; i++){
+        
+        rect(bd.x + pills[i][0] * bd.p -4 , bd.y + pills[i][1] * bd.p -4,8,8);
+        
+    }
+
+
 }
 
 function drawPacman(){
@@ -253,17 +263,15 @@ function move(){
         pacman.x = bd.x;
     }
 
-//    stroke(255,0,0);
-//    circle(edge[pacman.side][0],edge[pacman.side][1],3);
-
-
 }
 
-const phanton = [
-    [0,0,20,20],[5,-10,15,15],[10,-15,10,10]
+const phanton = {
 
+    body:[[-12,0,12,9],[-9,-6,9,6],[-6,-9,6,3]],
+    skirt: [[-12,9,3,3],[-6,9,3,3]],
+    eye :[[-9,-3,3,6]]
 
-];
+};
 
 
 function ghost(){
@@ -281,14 +289,24 @@ function ghost(){
         let y = 350
 
 
-        for(let i=0; i<phanton.length; i++){
-            mirror("R",[x+phanton[i][0],y+phanton[i][1],phanton[i][2],phanton[i][3]],0,x+15);
+        for(let i=0; i<phanton.body.length; i++){
+            mirror("R",[x+phanton.body[i][0],y+phanton.body[i][1],phanton.body[i][2],phanton.body[i][3]],0,x);
+        }
+
+        for(let i=0; i<phanton.skirt.length; i++){
+            mirror("R",[x+phanton.skirt[i][0],y+phanton.skirt[i][1],phanton.skirt[i][2],phanton.skirt[i][3]],0,x);
+        }
+
+        fill(255);
+
+        for(let i=0; i<phanton.eye.length; i++){
+            mirror("R",[x+phanton.eye[i][0],y+phanton.eye[i][1],phanton.eye[i][2],phanton.eye[i][3]],0,x-3);
         }
 
 
     }
 
-    drawGhost(clyde);
+    drawGhost(pink);
 
 
 }
