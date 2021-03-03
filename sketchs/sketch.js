@@ -1,19 +1,18 @@
 //********* GLOBAL DATA *********//
 
 const screen = [768,630];
-
 const pixel = [screen[0]/256, screen[1]/240];
 
 const bd = new Object; // board setup
-    bd.x = 141;
+    bd.x = 40;
     bd.y = 50;
     bd.p = 18;
     bd.color = (0,0,255);
     bd.bg = [0,0,0];
 
 const pacman = new Object;
-    pacman.x = 384;
-    pacman.y = bd.y + 414;
+    pacman.x = bd.x + bd.p * 13.5;
+    pacman.y = bd.y + bd.p * 23;
     pacman.rad = 13;
     pacman.color = [255,255,0];
     pacman.mounth = 0.3;
@@ -33,6 +32,7 @@ const squares = [[13,0,1,4],
     [2,27,9,1],[7,24,1,3]];
 
 let dots;
+let hiscore = 0;
 
 //********* FUNCTIONS **********//
 
@@ -55,6 +55,7 @@ function draw() {
     drawBord(10);
     drawPacman();
     drawDots();
+    ghost();
     move();
 
 }
@@ -108,12 +109,14 @@ function drawBord(weigth=pixel, filler=false, rad=10){
     strokeWeight(weigth);
 
     for(let i=0; i<squares.length; i++){
-        mirror("R",[ bd.x + squares[i][0] * bd.p , bd.y + squares[i][1] * bd.p, squares[i][2] * bd.p, squares[i][3] * bd.p],rad);
+        mirror("R",[ bd.x + squares[i][0] * bd.p , bd.y + squares[i][1] * bd.p, squares[i][2] * bd.p, squares[i][3] * bd.p],rad,bd.x + bd.p * 13.5 );
     }
 
-    fill(0);
-    noStroke();
-    mirror("R",[50,289,100,27],0);
+    if(!filler){
+        fill(0);
+        stroke(0);
+        mirror("R",[bd.x,bd.y + bd.p * 13.5,100,18],0,bd.x + bd.p * 13.5);
+    }    
 
 }
 
@@ -138,12 +141,20 @@ function fillBoard(){
 }
 
 function placar(){
+
+    const zeroPad = (num, places) => String(num).padStart(places, '0');
+
     noStroke();
+    fill(255,155,0);
+    text("HI SCORE", 550, 100, 200, 150);
+    text("1P"      , 550, 200, 200, 150);
+
     fill(255,255,255);
-    text("1P "+pacman.score, 10, 30, 200, 150);
+    text(zeroPad(hiscore,8)     , 550, 130, 200, 150);
+    text(zeroPad(pacman.score,8), 550, 230, 200, 150);
 }
 
-function mirror(T,D,R){
+function mirror(T,D,R,C){
 
     const x = D[0];
     const y = D[1];
@@ -154,8 +165,10 @@ function mirror(T,D,R){
         line(x,y,w,h);
         line(screen[0]-x,y,screen[0]-w,h);
     }else if(T == "R"){
-        rect(x,y,w,h,R);
-        rect(screen[0]-x-w,y,w,h,R);
+        rect(x,y,w,h,R);        
+
+        rect(2*C-x-w, y, w, h, R);
+//        rect(screen[0]-x-w,y,w,h,R);
     }
 
 }
@@ -234,10 +247,10 @@ function move(){
         }
     }
 
-    if(pacman.x <= 150){
-        pacman.x = 620;
-    }else if(pacman.x >= 620){
-        pacman.x = 150;
+    if(pacman.x <= bd.x){
+        pacman.x = bd.x + bd.p * 27;
+    }else if(pacman.x >= bd.x + bd.p * 27){
+        pacman.x = bd.x;
     }
 
 //    stroke(255,0,0);
@@ -246,7 +259,36 @@ function move(){
 
 }
 
-function position(axis){
+const phanton = [
+    [0,0,20,20],[5,-10,15,15],[10,-15,10,10]
+
+
+];
+
+
+function ghost(){
+
+    const clyde = [247,155,0];
+    const blinky = [230,38,35];
+    const pink = [247,179,215];
+    const inky = [0,247,216];
+
+    function drawGhost(color){
+        fill(color);
+        noStroke();
+
+        let x = 600;
+        let y = 350
+
+
+        for(let i=0; i<phanton.length; i++){
+            mirror("R",[x+phanton[i][0],y+phanton[i][1],phanton[i][2],phanton[i][3]],0,x+15);
+        }
+
+
+    }
+
+    drawGhost(clyde);
 
 
 }
