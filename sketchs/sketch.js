@@ -15,6 +15,8 @@ const bd = new Object; // board setup
 const pacman = new Object;
     pacman.x = bd.x + bd.p * 13.5;
     pacman.y = bd.y + bd.p * 23;
+    pacman.mov_x = 0;
+    pacman.mov_y = 0;
     pacman.rad = 13;
     pacman.color = [255,255,0];
     pacman.mounth = 0.3;
@@ -48,21 +50,27 @@ const phanton = {
 const enemy_colors = [[247,155,0],[230,38,35],[247,179,215],[0,247,216]];
 
 class Enemy{
-    constructor(x,y,color){
+    constructor(x,y,n){
         this.x = x;
         this.y = y;
+        this.num = n;
         this.speed = 5;
         this.side = 0;
-        this.color = color;
         this.move = true;
         this.count = 0;
     }
 }
 
+Enemy.prototype.move = function(){
+
+
+
+}
+
 const enemys = [];
 
 for(let i=0; i<4; i++){
-    enemys.push(new Enemy(bd.x + bd.p * (12 + i) ,bd.y + bd.p * 13,enemy_colors[i]));
+    enemys.push(new Enemy(bd.x + bd.p * (12 + i) ,bd.y + bd.p * 13,i));
 }
 
 //********* FUNCTIONS **********//
@@ -94,7 +102,10 @@ function draw() {
 function keyPressed() {
 
   
-    let pos = ([(pacman.x - bd.x) % bd.p,(pacman.y - bd.y) % bd.p])
+    let pos = ([(pacman.x - bd.x) % bd.p,(pacman.y - bd.y) % bd.p]);
+    const walls = wall(pacman);
+    pacman.mov_x = 0;
+    pacman.mov_y = 0;
 
     function horizontal(){
         if(pos[1] > 8){
@@ -113,19 +124,33 @@ function keyPressed() {
     }
     
     if (keyCode === RIGHT_ARROW) {
-        pacman.side = 0;
+        pacman.side = 0;        
         horizontal();
+        if(!walls[0]){
+            pacman.mov_x = 1;
+        }
+
     } else if (keyCode === UP_ARROW) {
         pacman.side = 1;
         vertical();
+        if(!walls[1]){
+            pacman.mov_y = -1;
+        }
 
     } else if (keyCode === LEFT_ARROW) {
         pacman.side = 2;
         horizontal();
+        if(!walls[2]){
+            pacman.mov_x = -1;
+        }
 
     } else if (keyCode === DOWN_ARROW) {
         pacman.side = 3;
         vertical();
+        if(!walls[3]){
+            pacman.mov_y = 1;
+        }
+
     }
   }
 
@@ -245,47 +270,38 @@ function drawPacman(){
     }
 }
 
+function wall(obj){
+    const edges = [[obj.x + obj.rad,obj.y],[obj.x , obj.y - obj.rad],[obj.x - obj.rad,obj.y],[obj.x , obj.y + obj.rad]];
+    let response = [];
+
+    for(let i=0; i<edges.length; i++){
+        if(get(edges[i][0],edges[i][1])[2] != 0){
+            response.push(true);
+        }else{
+            response.push(false);
+        }
+    }
+    
+    return response;
+}
+
+
 function move(){
+    
+    const walls = wall(pacman);
 
-    const edge = [[pacman.x + pacman.rad,pacman.y],[pacman.x , pacman.y - pacman.rad],[pacman.x - pacman.rad,pacman.y],[pacman.x , pacman.y + pacman.rad]]
-    let wall;
-    let x = 0;
-    let y = 0;
-    switch (pacman.side) {
-        case 0:
-            x = 1;
-        break;
-        case 1:
-            y = -1;
-        break;
-        case 2:
-            x = -1;
-        break;
-        case 3:
-            y = 1;
-        break;
-    }
-
-    if(get(edge[pacman.side][0],edge[pacman.side][1])[2] == 0){
-        wall = false;
-    }else{
-        wall = true;
-    }
-  
-    if(!wall){
-        pacman.x += x;
-        pacman.y += y;
-
+    if(!walls[pacman.side]){
+        pacman.x += pacman.mov_x;
+        pacman.y += pacman.mov_y;    
         eat();
-
     }
 
-    if(pacman.x <= bd.x){
+    if(pacman.x <= bd.x){ // secret pass
         pacman.x = bd.x + bd.p * 27;
     }else if(pacman.x >= bd.x + bd.p * 27){
         pacman.x = bd.x;
     }
-    color
+    
 }
 
 function eat(){
@@ -318,7 +334,7 @@ function drawGhost(){
 
     function showghost(ght){
 
-        let color = ght.color;
+        let color = enemy_colors[ght.num];
 
         fill(color);
         noStroke();
