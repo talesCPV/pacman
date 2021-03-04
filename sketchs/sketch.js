@@ -9,6 +9,8 @@ const bd = new Object; // board setup
     bd.p = 18;
     bd.color = (0,0,255);
     bd.bg = [0,0,0];
+    bd.cell = [255,255,0];
+    bd.pill = [255,0,0];
 
 const pacman = new Object;
     pacman.x = bd.x + bd.p * 13.5;
@@ -32,8 +34,36 @@ const squares = [[13,0,1,4],
     [2,27,9,1],[7,24,1,3]];
 
 let dots;
-let pills;
+
 let hiscore = 0;
+
+const phanton = {
+    body:[[-12,0,12,9],[-9,-6,9,6],[-6,-9,6,3]],
+    skirt1: [[-9,9,3,3],[-3,9,3,3]],
+    skirt2: [[-12,9,3,3],[-6,9,3,3]],
+    eye :[[-9,-3,3,6]],
+    look : [[0,0,3,3]]
+};
+
+const enemy_colors = [[247,155,0],[230,38,35],[247,179,215],[0,247,216]];
+
+class Enemy{
+    constructor(x,y,color){
+        this.x = x;
+        this.y = y;
+        this.speed = 5;
+        this.side = 0;
+        this.color = color;
+        this.move = true;
+        this.count = 0;
+    }
+}
+
+const enemys = [];
+
+for(let i=0; i<4; i++){
+    enemys.push(new Enemy(bd.x + bd.p * (12 + i) ,bd.y + bd.p * 13,enemy_colors[i]));
+}
 
 //********* FUNCTIONS **********//
 
@@ -56,7 +86,7 @@ function draw() {
     drawBord(10);
     drawPacman();
     drawDots();
-    ghost();
+    drawGhost();
     move();
 
 }
@@ -139,7 +169,7 @@ function fillBoard(){
             }
         }
     }
-    pills = [[1,3],[26,3],[1,28],[26,28]];
+    
 }
 
 function placar(){
@@ -175,22 +205,20 @@ function mirror(T,D,R,C){
 
 function drawDots(diam = 2){
     noFill();
-
+ 
     for(let y=0; y<dots.length; y++){
         for(let x=0; x<dots[y].length;x++){
             circle(bd.x + dots[y][x] * bd.p , bd.y + y* bd.p,diam);
+
+            if(y == 3 || y == 28){
+                if(dots[y][x] == 1 || dots[y][x] == 26){
+                    stroke(bd.pill);
+                    circle(bd.x + dots[y][x] * bd.p , bd.y + y* bd.p,diam*5);
+                    stroke(bd.cell);
+                }
+            }
         }
     }
-
-    stroke(255,0,0);
-
-    for(let i=0; i<pills.length; i++){
-        
-        rect(bd.x + pills[i][0] * bd.p -4 , bd.y + pills[i][1] * bd.p -4,8,8);
-        
-    }
-
-
 }
 
 function drawPacman(){
@@ -248,13 +276,8 @@ function move(){
         pacman.x += x;
         pacman.y += y;
 
-        let pos = [Math.floor((pacman.x - bd.x) / bd.p),Math.floor((pacman.y - bd.y) / bd.p)]
-        const found = dots[pos[1]].indexOf(pos[0]);
+        eat();
 
-        if(found >= 0){
-            pacman.score += 10;
-            dots[pos[1]].splice(found,1);
-        }
     }
 
     if(pacman.x <= bd.x){
@@ -262,51 +285,81 @@ function move(){
     }else if(pacman.x >= bd.x + bd.p * 27){
         pacman.x = bd.x;
     }
-
+    color
 }
 
-const phanton = {
+function eat(){
 
-    body:[[-12,0,12,9],[-9,-6,9,6],[-6,-9,6,3]],
-    skirt: [[-12,9,3,3],[-6,9,3,3]],
-    eye :[[-9,-3,3,6]]
+    let pos = [Math.floor((pacman.x - bd.x) / bd.p),Math.floor((pacman.y - bd.y) / bd.p)]
+    const found = dots[pos[1]].indexOf(pos[0]);
 
-};
+    if(found >= 0){
+        pacman.score += 10;
+        dots[pos[1]].splice(found,1);
 
+        if(pos[0] == 1){
+            if(pos[1] == 3){
+                alert(1)
 
-function ghost(){
+            }else if(pos[1] == 28){
+                alert(2)
+            }
+        }else if(pos[0] == 26){
+            if(pos[1] == 3){
+                alert(3)
+            }else if(pos[1] == 28){
+                alert(4)
+            }
+        }        
+    }
+}
 
-    const clyde = [247,155,0];
-    const blinky = [230,38,35];
-    const pink = [247,179,215];
-    const inky = [0,247,216];
+function drawGhost(){
 
-    function drawGhost(color){
+    function showghost(ght){
+
+        let color = ght.color;
+
         fill(color);
         noStroke();
-
-        let x = 600;
-        let y = 350
-
-
+    
         for(let i=0; i<phanton.body.length; i++){
-            mirror("R",[x+phanton.body[i][0],y+phanton.body[i][1],phanton.body[i][2],phanton.body[i][3]],0,x);
+            mirror("R",[ght.x+phanton.body[i][0],ght.y+phanton.body[i][1],phanton.body[i][2],phanton.body[i][3]],0,ght.x);
         }
+    
+        for(let i=0; i<phanton.skirt1.length; i++){
+            if(ght.move){
+                mirror("R",[ght.x+phanton.skirt1[i][0],ght.y+phanton.skirt1[i][1],phanton.skirt1[i][2],phanton.skirt1[i][3]],0,ght.x);
+            }else{
+                mirror("R",[ght.x+phanton.skirt2[i][0],ght.y+phanton.skirt2[i][1],phanton.skirt2[i][2],phanton.skirt2[i][3]],0,ght.x);
+            }
 
-        for(let i=0; i<phanton.skirt.length; i++){
-            mirror("R",[x+phanton.skirt[i][0],y+phanton.skirt[i][1],phanton.skirt[i][2],phanton.skirt[i][3]],0,x);
+            ght.count++;
+            if(ght.count ==10){
+                ght.count = 0;
+                ght.move = !ght.move;
+            }
+
         }
-
+    
         fill(255);
-
+    
         for(let i=0; i<phanton.eye.length; i++){
-            mirror("R",[x+phanton.eye[i][0],y+phanton.eye[i][1],phanton.eye[i][2],phanton.eye[i][3]],0,x-3);
+            mirror("R",[ght.x+phanton.eye[i][0],ght.y+phanton.eye[i][1],phanton.eye[i][2],phanton.eye[i][3]],0,ght.x-3);
         }
-
-
+    
+        fill(0);
+    
+        for(let i=0; i<phanton.look.length; i++){
+            mirror("R",[ght.x+phanton.look[i][0],ght.y+phanton.look[i][1],phanton.look[i][2],phanton.look[i][3]],0,ght.x-3);
+        }
+    
     }
 
-    drawGhost(pink);
+    for(let i=0; i<enemys.length; i++){
 
+        showghost(enemys[i]);
+
+    }
 
 }
