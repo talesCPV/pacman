@@ -23,6 +23,55 @@ const pacman = new Object;
     pacman.open = true;
     pacman.side = 0;
     pacman.score = 0;
+    pacman.speed = 1;
+
+class Enemy{
+    constructor(x,y,n){
+        this.x = x;
+        this.y = y;
+        this.mov_x = 0;
+        this.mov_y = 0;
+        this.rad = 13;
+        this.atack = true;
+        this.num = n;
+        this.speed = 1;
+        this.side = 0;
+        this.move = true;
+        this.count = 0;
+    }
+}
+
+Enemy.prototype.run = function(){
+    
+    const walls = wall(this);
+    const turn = turnpoint(this);
+
+    if(this.atack){
+        if(this.mov_y == 0 && turn[0]){
+            if(pacman.y > this.y && !walls[3]){
+                this.mov_x = 0;
+                this.mov_y = this.speed;
+            }else if(pacman.y < this.y && !walls[1]){
+                this.mov_x = 0;
+                this.mov_y = -this.speed;
+            }
+
+        }else if(this.mov_x == 0 && turn[1]){
+            if(pacman.x > this.x && !walls[0]){
+                this.mov_x = this.speed;
+                this.mov_y = 0;
+            }else if(pacman.x < this.x && !walls[2]){
+                this.mov_x = -this.speed;
+                this.mov_y = 0;
+            }
+        }
+    }
+
+
+    this.x += this.mov_x;
+    this.y += this.mov_y;
+
+}
 
 const squares = [[13,0,1,4],
     [2,2,3,2],[7,2,4,2],
@@ -49,27 +98,9 @@ const phanton = {
 
 const enemy_colors = [[247,155,0],[230,38,35],[247,179,215],[0,247,216]];
 
-class Enemy{
-    constructor(x,y,n){
-        this.x = x;
-        this.y = y;
-        this.num = n;
-        this.speed = 5;
-        this.side = 0;
-        this.move = true;
-        this.count = 0;
-    }
-}
-
-Enemy.prototype.move = function(){
-
-
-
-}
-
 const enemys = [];
 
-for(let i=0; i<4; i++){
+for(let i=0; i<1; i++){ // qtd enemys
     enemys.push(new Enemy(bd.x + bd.p * (12 + i) ,bd.y + bd.p * 13,i));
 }
 
@@ -96,16 +127,18 @@ function draw() {
     drawDots();
     drawGhost();
     move();
+    
+//    enemys[0].run();
 
+    moveGhosts();
 }
 
 function keyPressed() {
 
-  
     let pos = ([(pacman.x - bd.x) % bd.p,(pacman.y - bd.y) % bd.p]);
     const walls = wall(pacman);
-    pacman.mov_x = 0;
-    pacman.mov_y = 0;
+
+//    alert(turnpoint(enemys[0]))
 
     function horizontal(){
         if(pos[1] > 8){
@@ -124,35 +157,53 @@ function keyPressed() {
     }
     
     if (keyCode === RIGHT_ARROW) {
-        pacman.side = 0;        
-        horizontal();
         if(!walls[0]){
-            pacman.mov_x = 1;
+            pacman.side = 0;
+            horizontal();
+            pacman.mov_x = pacman.speed;
+            pacman.mov_y = 0;
         }
 
     } else if (keyCode === UP_ARROW) {
-        pacman.side = 1;
-        vertical();
         if(!walls[1]){
-            pacman.mov_y = -1;
+            pacman.side = 1;
+            vertical();
+            pacman.mov_x = 0;
+            pacman.mov_y = -pacman.speed;
         }
 
     } else if (keyCode === LEFT_ARROW) {
-        pacman.side = 2;
-        horizontal();
         if(!walls[2]){
-            pacman.mov_x = -1;
+            pacman.side = 2;
+            horizontal();
+            pacman.mov_x = -pacman.speed;
+            pacman.mov_y = 0;
         }
 
     } else if (keyCode === DOWN_ARROW) {
-        pacman.side = 3;
-        vertical();
         if(!walls[3]){
-            pacman.mov_y = 1;
+            pacman.side = 3;
+            vertical();
+            pacman.mov_x = 0;
+            pacman.mov_y = pacman.speed;
         }
 
     }
   }
+
+function turnpoint(obj){
+    let pos = ([(obj.x - bd.x) % bd.p,(obj.y - bd.y) % bd.p]);
+    let edges = [false,false];
+
+    if(pos[0] == 0){        
+        edges[0] = true;
+    }
+    if(pos[1] == 0){
+        edges[1] = true;
+    }
+
+    return edges;
+}
 
 function drawBord(weigth=pixel, filler=false, rad=10){
 
@@ -213,6 +264,8 @@ function placar(){
 
 function mirror(T,D,R,C){
 
+    R = 0
+
     const x = D[0];
     const y = D[1];
     const w = D[2];
@@ -271,7 +324,8 @@ function drawPacman(){
 }
 
 function wall(obj){
-    const edges = [[obj.x + obj.rad,obj.y],[obj.x , obj.y - obj.rad],[obj.x - obj.rad,obj.y],[obj.x , obj.y + obj.rad]];
+    const offset = 0.5;
+    const edges = [[obj.x + (obj.rad + offset),obj.y],[obj.x , obj.y - (obj.rad + offset)],[obj.x - (obj.rad + offset),obj.y],[obj.x , obj.y + (obj.rad + offset)]];
     let response = [];
 
     for(let i=0; i<edges.length; i++){
@@ -302,6 +356,13 @@ function move(){
         pacman.x = bd.x;
     }
     
+}
+
+function moveGhosts(){
+    for(let i=0; i<enemys.length; i++){
+        enemys[i].run();
+    }
+
 }
 
 function eat(){
