@@ -32,7 +32,7 @@ class Enemy{
         this.mov_x = 0;
         this.mov_y = 0;
         this.rad = 13;
-        this.atack = true;
+        this.mode = "atack";
         this.num = n;
         this.speed = 1;
         this.side = 0;
@@ -45,32 +45,82 @@ Enemy.prototype.run = function(){
     
     const walls = wall(this);
     const turn = turnpoint(this);
+    const pos = ([Math.round((this.x - bd.x) / bd.p),Math.round((this.y - bd.y) / bd.p)]);
 
-    if(this.atack){
-        if(this.mov_y == 0 && turn[0]){
-            if(pacman.y > this.y && !walls[3]){
-                this.mov_x = 0;
-                this.mov_y = this.speed;
-            }else if(pacman.y < this.y && !walls[1]){
-                this.mov_x = 0;
-                this.mov_y = -this.speed;
+    if(pos[0] >10 && pos[0] < 17 && pos[1] > 10 && pos[1] < 15 ){
+        this.mode = "born";
+    }
+
+ 
+
+    if(this.mode == "atack"){ // em ataque
+        if(this.mov_y == 0 && turn[0]){ // movendo em X e esquina em Y
+            if(pacman.y > this.y && !walls[3]){ // pacman abaixo e caminho aberto abaixo
+                this.turn_down();                
+            }else if(pacman.y < this.y && !walls[1]){ // pacman acima e caminho aberto acima
+                this.turn_up();
+            }else{
+                if(this.mov_x > 0 && walls[0]){ // movendo p/ direira e encontrou parede
+                    if(!walls[3]){ //não tem parede abaixo
+                        this.turn_down();
+                    }else if(!walls[1]){ // não tem parede acima
+                        this.turn_up();
+                    }
+                }else if(this.mov_x < 0 && walls[2]){ // movendo p/ esquerda e encontrou parede
+                    if(!walls[3]){ // não tem parede abaixo
+                        this.turn_down();
+                    }else if(!walls[1]){ // não tem parede acima
+                        this.turn_up();
+                    }
+                }
             }
 
         }else if(this.mov_x == 0 && turn[1]){
             if(pacman.x > this.x && !walls[0]){
-                this.mov_x = this.speed;
-                this.mov_y = 0;
+                this.turn_rigth();
             }else if(pacman.x < this.x && !walls[2]){
-                this.mov_x = -this.speed;
-                this.mov_y = 0;
+                this.turn_left();
+            }else{
+                if(this.mov_y > 0 && walls[3]){ // movendo p/ baixo e encontrou parede
+                    if(!walls[0]){ //não tem parede a direita
+                        this.turn_rigth();
+                    }else if(!walls[2]){ // não tem parede a esquerda
+                        this.turn_left();
+                    }
+                }else if(this.mov_y < 0 && walls[1]){ // movendo p/ cima e encontrou parede
+                    if(!walls[0]){ //não tem parede a direita
+                        this.turn_rigth();
+                    }else if(!walls[2]){ // não tem parede a esquerda
+                        this.turn_left();
+                    }
+                }                
             }
         }
+    }else if(this.mode == "born"){
+        this.turn_up();
+        this.mode = "atack";
     }
-
 
     this.x += this.mov_x;
     this.y += this.mov_y;
 
+}
+
+Enemy.prototype.turn_rigth = function(){
+    this.mov_x = this.speed;
+    this.mov_y = 0;
+}
+Enemy.prototype.turn_up = function(){
+    this.mov_x = 0;
+    this.mov_y = -this.speed;    
+}
+Enemy.prototype.turn_left = function(){
+    this.mov_x = -this.speed;    
+    this.mov_y = 0;
+}
+Enemy.prototype.turn_down = function(){
+    this.mov_x = 0;
+    this.mov_y = this.speed;    
 }
 
 const squares = [[13,0,1,4],
@@ -100,7 +150,7 @@ const enemy_colors = [[247,155,0],[230,38,35],[247,179,215],[0,247,216]];
 
 const enemys = [];
 
-for(let i=0; i<1; i++){ // qtd enemys
+for(let i=0; i<4; i++){ // qtd enemys
     enemys.push(new Enemy(bd.x + bd.p * (12 + i) ,bd.y + bd.p * 13,i));
 }
 
