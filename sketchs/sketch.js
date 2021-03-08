@@ -2,6 +2,31 @@
 
 const screen = [768,630];
 const pixel = [screen[0]/256, screen[1]/240];
+const enemy_colors = [[247,155,0],[230,38,35],[247,179,215],[0,247,216]];
+const enemys = [];
+let dots;
+let hiscore = 0;
+
+const squares = [[13,0,1,4],
+    [2,2,3,2],[7,2,4,2],
+    [2,6,3,1],[7,6,1,7],[10,6,7,1],[13,7,1,3],
+    [0,9,5,4],[8,9,3,1],
+    [10,12,7,4],
+    [0,15,5,4],[7,15,1,4],
+    [10,18,7,1],[13,19,1,3],
+    [2,21,3,1],[7,21,4,1],[4,22,1,3],
+    [0,24,2,1],[10,24,7,1],[13,25,1,3],
+    [2,27,9,1],[7,24,1,3]];
+
+const phanton = {
+    body:[[-12,0,12,9],[-9,-6,9,6],[-6,-9,6,3]],
+    skirt1: [[-9,9,3,3],[-3,9,3,3]],
+    skirt2: [[-12,9,3,3],[-6,9,3,3]],
+    eye :[[-9,-3,3,6]],
+    look : [[0,0,3,3]]
+};
+
+//*********  CLASSES  *********//
 
 const bd = new Object; // board setup
     bd.x = 40;
@@ -51,8 +76,6 @@ Enemy.prototype.run = function(){
         this.mode = "born";
     }
 
- 
-
     if(this.mode == "atack"){ // em ataque
         if(this.mov_y == 0 && turn[0]){ // movendo em X e esquina em Y
             if(pacman.y > this.y && !walls[3]){ // pacman abaixo e caminho aberto abaixo
@@ -61,17 +84,9 @@ Enemy.prototype.run = function(){
                 this.turn_up();
             }else{
                 if(this.mov_x > 0 && walls[0]){ // movendo p/ direira e encontrou parede
-                    if(!walls[3]){ //não tem parede abaixo
-                        this.turn_down();
-                    }else if(!walls[1]){ // não tem parede acima
-                        this.turn_up();
-                    }
+                    this.force("V",walls);
                 }else if(this.mov_x < 0 && walls[2]){ // movendo p/ esquerda e encontrou parede
-                    if(!walls[3]){ // não tem parede abaixo
-                        this.turn_down();
-                    }else if(!walls[1]){ // não tem parede acima
-                        this.turn_up();
-                    }
+                    this.force("V",walls);
                 }
             }
 
@@ -82,28 +97,50 @@ Enemy.prototype.run = function(){
                 this.turn_left();
             }else{
                 if(this.mov_y > 0 && walls[3]){ // movendo p/ baixo e encontrou parede
-                    if(!walls[0]){ //não tem parede a direita
-                        this.turn_rigth();
-                    }else if(!walls[2]){ // não tem parede a esquerda
-                        this.turn_left();
-                    }
+                    this.force("H",walls);
                 }else if(this.mov_y < 0 && walls[1]){ // movendo p/ cima e encontrou parede
-                    if(!walls[0]){ //não tem parede a direita
-                        this.turn_rigth();
-                    }else if(!walls[2]){ // não tem parede a esquerda
-                        this.turn_left();
-                    }
+                    this.force("H",walls);
                 }                
             }
         }
     }else if(this.mode == "born"){
         this.turn_up();
         this.mode = "atack";
+    }else if(this.mode == "runaway"){
+        if(pos[0] > 13){
+            this.turn_left();
+        }else if(pos[0] < 13){
+            this.turn_rigth();
+        }
+        if(pos[1] > 13){
+            this.turn_up();
+        }else if(pos[1] < 13){
+            this.turn_down();
+        }
+
     }
 
     this.x += this.mov_x;
     this.y += this.mov_y;
 
+    secretPass(this);
+
+}
+
+Enemy.prototype.force = function(axis,walls){
+    if(axis == 'H'){
+        if(!walls[0]){ //não tem parede a direita
+            this.turn_rigth();
+        }else if(!walls[2]){ // não tem parede a esquerda
+            this.turn_left();
+        }
+    }else{
+        if(!walls[3]){ //não tem parede abaixo
+            this.turn_down();
+        }else if(!walls[1]){ // não tem parede acima
+            this.turn_up();
+        }        
+    }
 }
 
 Enemy.prototype.turn_rigth = function(){
@@ -123,37 +160,6 @@ Enemy.prototype.turn_down = function(){
     this.mov_y = this.speed;    
 }
 
-const squares = [[13,0,1,4],
-    [2,2,3,2],[7,2,4,2],
-    [2,6,3,1],[7,6,1,7],[10,6,7,1],[13,7,1,3],
-    [0,9,5,4],[8,9,3,1],
-    [10,12,7,4],
-    [0,15,5,4],[7,15,1,4],
-    [10,18,7,1],[13,19,1,3],
-    [2,21,3,1],[7,21,4,1],[4,22,1,3],
-    [0,24,2,1],[10,24,7,1],[13,25,1,3],
-    [2,27,9,1],[7,24,1,3]];
-
-let dots;
-
-let hiscore = 0;
-
-const phanton = {
-    body:[[-12,0,12,9],[-9,-6,9,6],[-6,-9,6,3]],
-    skirt1: [[-9,9,3,3],[-3,9,3,3]],
-    skirt2: [[-12,9,3,3],[-6,9,3,3]],
-    eye :[[-9,-3,3,6]],
-    look : [[0,0,3,3]]
-};
-
-const enemy_colors = [[247,155,0],[230,38,35],[247,179,215],[0,247,216]];
-
-const enemys = [];
-
-for(let i=0; i<4; i++){ // qtd enemys
-    enemys.push(new Enemy(bd.x + bd.p * (12 + i) ,bd.y + bd.p * 13,i));
-}
-
 //********* FUNCTIONS **********//
 
 function preload(){
@@ -163,10 +169,14 @@ function preload(){
 function setup() {
     createCanvas(screen[0],screen[1]);
     textSize(20);
-//    frameRate(30)
     textAlign(10, 10);
     textFont(font);
     fillBoard();
+
+    for(let i=0; i<4; i++){ // qtd enemys
+        enemys.push(new Enemy(bd.x + bd.p * (12 + i) ,bd.y + bd.p * 13,i));
+    }
+
 }
 
 function draw() {
@@ -313,9 +323,7 @@ function placar(){
 }
 
 function mirror(T,D,R,C){
-
     R = 0
-
     const x = D[0];
     const y = D[1];
     const w = D[2];
@@ -333,7 +341,6 @@ function mirror(T,D,R,C){
 
 function drawDots(diam = 2){
     noFill();
- 
     for(let y=0; y<dots.length; y++){
         for(let x=0; x<dots[y].length;x++){
             circle(bd.x + dots[y][x] * bd.p , bd.y + y* bd.p,diam);
@@ -355,7 +362,7 @@ function drawPacman(){
     stroke(255,255,0);
     strokeWeight(pixel);
     ellipseMode(CENTER);
-    
+
     arc(pacman.x,pacman.y, pacman.rad, pacman.rad, (pacman.mounth*PI) - (PI/2 * pacman.side), 2*PI - (pacman.mounth*PI) - (PI/2 * pacman.side)  , PIE);
     noFill();
 
@@ -385,34 +392,32 @@ function wall(obj){
             response.push(false);
         }
     }
-    
     return response;
 }
 
 
-function move(){
-    
+function move(){    
     const walls = wall(pacman);
-
     if(!walls[pacman.side]){
         pacman.x += pacman.mov_x;
         pacman.y += pacman.mov_y;    
         eat();
     }
+    secretPass(pacman);    
+}
 
-    if(pacman.x <= bd.x){ // secret pass
-        pacman.x = bd.x + bd.p * 27;
-    }else if(pacman.x >= bd.x + bd.p * 27){
-        pacman.x = bd.x;
+function secretPass(obj){
+    if(obj.x <= bd.x){ // secret pass
+        obj.x = bd.x + bd.p * 27;
+    }else if(obj.x >= bd.x + bd.p * 27){
+        obj.x = bd.x;
     }
-    
 }
 
 function moveGhosts(){
     for(let i=0; i<enemys.length; i++){
         enemys[i].run();
     }
-
 }
 
 function eat(){
@@ -423,19 +428,10 @@ function eat(){
     if(found >= 0){
         pacman.score += 10;
         dots[pos[1]].splice(found,1);
-
-        if(pos[0] == 1){
-            if(pos[1] == 3){
-                alert(1)
-
-            }else if(pos[1] == 28){
-                alert(2)
-            }
-        }else if(pos[0] == 26){
-            if(pos[1] == 3){
-                alert(3)
-            }else if(pos[1] == 28){
-                alert(4)
+        if((pos[0] == 1 || pos[0] == 26) && (pos[1] == 3 || pos[1] == 28)){ // pill      
+            pacman.score += 40;
+            for(let i=0; i<enemys.length; i++){ 
+                enemys[i].mode = "runaway" ;
             }
         }        
     }
@@ -444,8 +440,14 @@ function eat(){
 function drawGhost(){
 
     function showghost(ght){
+        let color;
+        if(ght.mode == "runaway"){
+            color = [0,0,255];
+        }else{
+            color = enemy_colors[ght.num];
+        }
 
-        let color = enemy_colors[ght.num];
+//        color = enemy_colors[ght.num];
 
         fill(color);
         noStroke();
@@ -484,9 +486,7 @@ function drawGhost(){
     }
 
     for(let i=0; i<enemys.length; i++){
-
         showghost(enemys[i]);
-
     }
 
 }
