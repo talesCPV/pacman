@@ -6,6 +6,7 @@ const enemy_colors = [[247,155,0],[230,38,35],[247,179,215],[0,247,216]];
 const enemys = [];
 let dots;
 let hiscore = 0;
+let pause = false;
 
 const squares = [[13,0,1,4],
     [2,2,3,2],[7,2,4,2],
@@ -49,6 +50,7 @@ const pacman = new Object;
     pacman.side = 0;
     pacman.score = 0;
     pacman.speed = 1;
+    pacman.lifes = 3;
 
 class Enemy{
     constructor(x,y,n){
@@ -68,64 +70,71 @@ class Enemy{
 
 Enemy.prototype.run = function(){
     
-    const walls = wall(this);
-    const turn = turnpoint(this);
     const pos = ([Math.round((this.x - bd.x) / bd.p),Math.round((this.y - bd.y) / bd.p)]);
 
-    if(pos[0] >10 && pos[0] < 17 && pos[1] > 10 && pos[1] < 15 ){
+    if(pos[0] >10 && pos[0] < 17 && pos[1] > 10 && pos[1] < 16 ){
         this.mode = "born";
     }
 
     if(this.mode == "atack"){ // em ataque
-        if(this.mov_y == 0 && turn[0]){ // movendo em X e esquina em Y
-            if(pacman.y > this.y && !walls[3]){ // pacman abaixo e caminho aberto abaixo
-                this.turn_down();                
-            }else if(pacman.y < this.y && !walls[1]){ // pacman acima e caminho aberto acima
-                this.turn_up();
-            }else{
-                if(this.mov_x > 0 && walls[0]){ // movendo p/ direira e encontrou parede
-                    this.force("V",walls);
-                }else if(this.mov_x < 0 && walls[2]){ // movendo p/ esquerda e encontrou parede
-                    this.force("V",walls);
-                }
-            }
-
-        }else if(this.mov_x == 0 && turn[1]){
-            if(pacman.x > this.x && !walls[0]){
-                this.turn_rigth();
-            }else if(pacman.x < this.x && !walls[2]){
-                this.turn_left();
-            }else{
-                if(this.mov_y > 0 && walls[3]){ // movendo p/ baixo e encontrou parede
-                    this.force("H",walls);
-                }else if(this.mov_y < 0 && walls[1]){ // movendo p/ cima e encontrou parede
-                    this.force("H",walls);
-                }                
-            }
-        }
+        this.goto(pacman.x,pacman.y)
     }else if(this.mode == "born"){
-        this.turn_up();
+        switch(this.num){
+            case 0:
+                this.turn_left();
+            break;
+            case 1:
+                this.turn_up();
+            break;
+            case 2:
+                this.turn_down();
+            break;
+            case 3:
+                this.turn_rigth();
+        }
         this.mode = "atack";
     }else if(this.mode == "runaway"){
-        if(pos[0] > 13){
-            this.turn_left();
-        }else if(pos[0] < 13){
-            this.turn_rigth();
-        }
-        if(pos[1] > 13){
-            this.turn_up();
-        }else if(pos[1] < 13){
-            this.turn_down();
-        }
-
+        this.goto(bd.x + 13 * bd.p, bd.y + 13 * bd.p); // foge para a base
     }
 
     this.x += this.mov_x;
     this.y += this.mov_y;
-
     secretPass(this);
-
 }
+
+Enemy.prototype.goto = function(X,Y){
+
+    const walls = wall(this);
+    const turn = turnpoint(this);
+
+    if(this.mov_y == 0 && turn[0]){ // movendo em X e esquina em Y
+        if(Y > this.y && !walls[3]){ // pacman abaixo e caminho aberto abaixo
+            this.turn_down();                
+        }else if(Y < this.y && !walls[1]){ // pacman acima e caminho aberto acima
+            this.turn_up();
+        }else{
+            if(this.mov_x > 0 && walls[0]){ // movendo p/ direira e encontrou parede
+                this.force("V",walls);
+            }else if(this.mov_x < 0 && walls[2]){ // movendo p/ esquerda e encontrou parede
+                this.force("V",walls);
+            }
+        }
+
+    }else if(this.mov_x == 0 && turn[1]){
+        if(X > this.x && !walls[0]){
+            this.turn_rigth();
+        }else if(X < this.x && !walls[2]){
+            this.turn_left();
+        }else{
+            if(this.mov_y > 0 && walls[3]){ // movendo p/ baixo e encontrou parede
+                this.force("H",walls);
+            }else if(this.mov_y < 0 && walls[1]){ // movendo p/ cima e encontrou parede
+                this.force("H",walls);
+            }                
+        }
+    }
+}
+
 
 Enemy.prototype.force = function(axis,walls){
     if(axis == 'H'){
@@ -173,7 +182,7 @@ function setup() {
     textFont(font);
     fillBoard();
 
-    for(let i=0; i<4; i++){ // qtd enemys
+    for(let i=0; i<4; i++){ // fill enemys
         enemys.push(new Enemy(bd.x + bd.p * (12 + i) ,bd.y + bd.p * 13,i));
     }
 
@@ -186,11 +195,10 @@ function draw() {
     drawPacman();
     drawDots();
     drawGhost();
-    move();
-    
-//    enemys[0].run();
-
-    moveGhosts();
+    if(!pause){
+        move();
+        moveGhosts();    
+    }
 }
 
 function keyPressed() {
@@ -248,6 +256,8 @@ function keyPressed() {
             pacman.mov_y = pacman.speed;
         }
 
+    } else if(keyCode == ENTER){
+        pause = !pause;
     }
   }
 
@@ -265,7 +275,7 @@ function turnpoint(obj){
     return edges;
 }
 
-function drawBord(weigth=pixel, filler=false, rad=10){
+function drawBord(weigth=pixel, filler=false){
 
     if(filler){
         fill(bd.color);
@@ -276,13 +286,13 @@ function drawBord(weigth=pixel, filler=false, rad=10){
     strokeWeight(weigth);
 
     for(let i=0; i<squares.length; i++){
-        mirror("R",[ bd.x + squares[i][0] * bd.p , bd.y + squares[i][1] * bd.p, squares[i][2] * bd.p, squares[i][3] * bd.p],rad,bd.x + bd.p * 13.5 );
+        mirror("R",[ bd.x + squares[i][0] * bd.p , bd.y + squares[i][1] * bd.p, squares[i][2] * bd.p, squares[i][3] * bd.p],bd.x + bd.p * 13.5 );
     }
 
     if(!filler){
         fill(0);
         stroke(0);
-        mirror("R",[bd.x,bd.y + bd.p * 13.5,100,18],0,bd.x + bd.p * 13.5);
+        mirror("R",[bd.x,bd.y + bd.p * 13.5,100,18],bd.x + bd.p * 13.5);
     }    
 
 }
@@ -292,7 +302,7 @@ function fillBoard(){
     squares.push([7,9,13,10]);
     squares.push([0,9,5,10]);
     squares.push([13,23,2,2]);
-    drawBord(6,true,0);
+    drawBord(6,true);
     squares.splice(squares.length-3,3);
     squares.push([0,0,27,30]);
     dots = [[]];
@@ -313,17 +323,22 @@ function placar(){
     const zeroPad = (num, places) => String(num).padStart(places, '0');
 
     noStroke();
-    fill(255,155,0);
+    fill(255,155,0); // VERMELHO
     text("HI SCORE", 550, 100, 200, 150);
     text("1P"      , 550, 200, 200, 150);
+    text("LIFES"      , 550, 300, 200, 150);
 
-    fill(255,255,255);
+    fill(255,255,255); // BRANCO
     text(zeroPad(hiscore,8)     , 550, 130, 200, 150);
     text(zeroPad(pacman.score,8), 550, 230, 200, 150);
+    
+    fill(255,255,0); // AMARELO
+    for(let i=0; i<pacman.lifes; i++){
+        arc(560 + (i * 25),330, 20, 20, 0.5, PI * 1.8  , PIE);
+    }
 }
 
-function mirror(T,D,R,C){
-    R = 0
+function mirror(T,D,C){
     const x = D[0];
     const y = D[1];
     const w = D[2];
@@ -333,8 +348,8 @@ function mirror(T,D,R,C){
         line(x,y,w,h);
         line(screen[0]-x,y,screen[0]-w,h);
     }else if(T == "R"){
-        rect(x,y,w,h,R);        
-        rect(2*C-x-w, y, w, h, R);
+        rect(x,y,w,h);
+        rect(2*C-x-w, y, w, h);
     }
 
 }
@@ -422,8 +437,8 @@ function moveGhosts(){
 
 function eat(){
 
-    let pos = [Math.floor((pacman.x - bd.x) / bd.p),Math.floor((pacman.y - bd.y) / bd.p)]
-    const found = dots[pos[1]].indexOf(pos[0]);
+    let pos = [Math.floor((pacman.x - bd.x) / bd.p),Math.floor((pacman.y - bd.y) / bd.p)] // pega a linha 
+    const found = dots[pos[1]].indexOf(pos[0]); // procura o indice da posição na linha se ela existir
 
     if(found >= 0){
         pacman.score += 10;
@@ -447,20 +462,18 @@ function drawGhost(){
             color = enemy_colors[ght.num];
         }
 
-//        color = enemy_colors[ght.num];
-
         fill(color);
         noStroke();
     
         for(let i=0; i<phanton.body.length; i++){
-            mirror("R",[ght.x+phanton.body[i][0],ght.y+phanton.body[i][1],phanton.body[i][2],phanton.body[i][3]],0,ght.x);
+            mirror("R",[ght.x+phanton.body[i][0],ght.y+phanton.body[i][1],phanton.body[i][2],phanton.body[i][3]],ght.x);
         }
     
         for(let i=0; i<phanton.skirt1.length; i++){
             if(ght.move){
-                mirror("R",[ght.x+phanton.skirt1[i][0],ght.y+phanton.skirt1[i][1],phanton.skirt1[i][2],phanton.skirt1[i][3]],0,ght.x);
+                mirror("R",[ght.x+phanton.skirt1[i][0],ght.y+phanton.skirt1[i][1],phanton.skirt1[i][2],phanton.skirt1[i][3]],ght.x);
             }else{
-                mirror("R",[ght.x+phanton.skirt2[i][0],ght.y+phanton.skirt2[i][1],phanton.skirt2[i][2],phanton.skirt2[i][3]],0,ght.x);
+                mirror("R",[ght.x+phanton.skirt2[i][0],ght.y+phanton.skirt2[i][1],phanton.skirt2[i][2],phanton.skirt2[i][3]],ght.x);
             }
 
             ght.count++;
@@ -474,13 +487,13 @@ function drawGhost(){
         fill(255);
     
         for(let i=0; i<phanton.eye.length; i++){
-            mirror("R",[ght.x+phanton.eye[i][0],ght.y+phanton.eye[i][1],phanton.eye[i][2],phanton.eye[i][3]],0,ght.x-3);
+            mirror("R",[ght.x+phanton.eye[i][0],ght.y+phanton.eye[i][1],phanton.eye[i][2],phanton.eye[i][3]],ght.x-3);
         }
     
         fill(0);
     
         for(let i=0; i<phanton.look.length; i++){
-            mirror("R",[ght.x+phanton.look[i][0],ght.y+phanton.look[i][1],phanton.look[i][2],phanton.look[i][3]],0,ght.x-3);
+            mirror("R",[ght.x+phanton.look[i][0],ght.y+phanton.look[i][1],phanton.look[i][2],phanton.look[i][3]],ght.x-3);
         }
     
     }
