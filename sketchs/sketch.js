@@ -51,6 +51,8 @@ const pacman = new Object;
     pacman.score = 0;
     pacman.speed = 1;
     pacman.lifes = 3;
+    pacman.dying = false;
+    pacman.count = 0;
 
 class Enemy{
     constructor(x,y,n){
@@ -181,32 +183,29 @@ function setup() {
     textAlign(10, 10);
     textFont(font);
     fillBoard();
-
     for(let i=0; i<4; i++){ // fill enemys
-        enemys.push(new Enemy(bd.x + bd.p * (12 + i) ,bd.y + bd.p * 13,i));
+//        enemys.push(new Enemy(0 , 0 ,i));
+        enemys.push(new Enemy(bd.x + bd.p * (12 + i) , bd.y + bd.p * 13,i));
     }
-
 }
 
 function draw() {
     background(bd.bg);
     placar();
     drawBord(10);
-    drawPacman();
     drawDots();
     drawGhost();
+    drawPacman();
     if(!pause){
         move();
         moveGhosts();    
-    }
+    }    
 }
 
 function keyPressed() {
 
     let pos = ([(pacman.x - bd.x) % bd.p,(pacman.y - bd.y) % bd.p]);
     const walls = wall(pacman);
-
-//    alert(turnpoint(enemys[0]))
 
     function horizontal(){
         if(pos[1] > 8){
@@ -260,6 +259,44 @@ function keyPressed() {
         pause = !pause;
     }
   }
+
+function restart(){
+    if(pacman.lifes >= 0){
+        pacman.x = bd.x + bd.p * 13.5;
+        pacman.y = bd.y + bd.p * 23;
+        pacman.dying = false;
+        pacman.count = 0;
+        pacman.side = 0;
+        pacman.mov_x = 0;
+        pacman.mov_y = 0;
+        for(let i=0; i<4; i++){ // fill enemys
+            enemys[i].x = bd.x + bd.p * (12 + i);
+            enemys[i].y = bd.y + bd.p * 13;
+            enemys.mode = "born";
+            console.log(enemys[i]);
+        }
+        pause = false;
+    }else{
+        fill(255,0,0);
+        text("GAME OVER", bd.x + bd.p * 8.6, bd.y + bd.p * 14.6, 200, 150);
+    }
+
+}
+
+function hit(N){
+    if((pacman.x + pacman.rad >= enemys[N].x - enemys[N].rad/2) && (pacman.x - pacman.rad <= enemys[N].x + enemys[N].rad/2)){
+        if((pacman.y + pacman.rad >= enemys[N].y - enemys[N].rad/2) && (pacman.y - pacman.rad <= enemys[N].y + enemys[N].rad/2)){
+            console.log("hit -> "+N);
+            if(enemys[N].mode != "runaway"){
+                pacman.dying = true;
+            }else{
+
+            }
+            pause = true;                                
+        }
+    }
+
+}
 
 function turnpoint(obj){
     let pos = ([(obj.x - bd.x) % bd.p,(obj.y - bd.y) % bd.p]);
@@ -377,8 +414,17 @@ function drawPacman(){
     stroke(255,255,0);
     strokeWeight(pixel);
     ellipseMode(CENTER);
-
-    arc(pacman.x,pacman.y, pacman.rad, pacman.rad, (pacman.mounth*PI) - (PI/2 * pacman.side), 2*PI - (pacman.mounth*PI) - (PI/2 * pacman.side)  , PIE);
+    if(pacman.dying){
+        if(pacman.count < 1){
+            pacman.count += 0.01;
+            arc(pacman.x,pacman.y, pacman.rad, pacman.rad, (1.5 + pacman.count) * PI  , (1.5 - pacman.count) * PI  , PIE);
+        }else{ // restart
+            pacman.lifes -= 1;
+            restart();
+        }
+    }else{
+        arc(pacman.x,pacman.y, pacman.rad, pacman.rad, (pacman.mounth*PI) - (PI/2 * pacman.side), 2*PI - (pacman.mounth*PI) - (PI/2 * pacman.side)  , PIE);
+    }
     noFill();
 
     if(pacman.open){
@@ -409,7 +455,6 @@ function wall(obj){
     }
     return response;
 }
-
 
 function move(){    
     const walls = wall(pacman);
@@ -500,6 +545,7 @@ function drawGhost(){
 
     for(let i=0; i<enemys.length; i++){
         showghost(enemys[i]);
+        hit(i);
     }
 
 }
