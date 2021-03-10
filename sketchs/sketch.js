@@ -54,7 +54,7 @@ const pacman = new Object;
     pacman.side = 0;
     pacman.score = 0;
     pacman.speed = 1;
-    pacman.lifes = 1;
+    pacman.lifes = 2;
     pacman.die = false;
     pacman.count = 0;
 
@@ -78,7 +78,7 @@ class Enemy{
 Enemy.prototype.run = function(){
     
     const pos = ([Math.round((this.x - bd.x) / bd.p),Math.round((this.y - bd.y) / bd.p)]);
-
+    
     if(pos[0] >10 && pos[0] < 17 && pos[1] > 10 && pos[1] < 16 ){
         this.mode = "born";
         this.die = false;
@@ -142,7 +142,6 @@ Enemy.prototype.goto = function(X,Y){
         }
     }
 }
-
 
 Enemy.prototype.force = function(axis,walls){
     if(axis == 'H'){
