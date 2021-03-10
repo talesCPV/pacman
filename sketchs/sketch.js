@@ -5,8 +5,11 @@ const pixel = [screen[0]/256, screen[1]/240];
 const enemy_colors = [[247,155,0],[230,38,35],[247,179,215],[0,247,216]];
 const enemys = [];
 let dots;
-let hiscore = 0;
+let last_dots = 0;
+let next_life = 10000;
+
 let pause = false;
+let new_hiscore = false;
 
 const squares = [[13,0,1,4],
     [2,2,3,2],[7,2,4,2],
@@ -17,14 +20,15 @@ const squares = [[13,0,1,4],
     [10,18,7,1],[13,19,1,3],
     [2,21,3,1],[7,21,4,1],[4,22,1,3],
     [0,24,2,1],[10,24,7,1],[13,25,1,3],
-    [2,27,9,1],[7,24,1,3]];
+    [2,27,9,1],[7,24,1,3],
+    [0,0,27,30]];
 
 const phanton = {
     body:[[-12,0,12,9],[-9,-6,9,6],[-6,-9,6,3]],
     skirt1: [[-9,9,3,3],[-3,9,3,3]],
     skirt2: [[-12,9,3,3],[-6,9,3,3]],
     eye :[[-9,-3,3,6]],
-    look : [[0,0,3,3]]
+    look : [[0,0,3,3]],
 };
 
 //*********  CLASSES  *********//
@@ -50,8 +54,8 @@ const pacman = new Object;
     pacman.side = 0;
     pacman.score = 0;
     pacman.speed = 1;
-    pacman.lifes = 3;
-    pacman.dying = false;
+    pacman.lifes = 1;
+    pacman.die = false;
     pacman.count = 0;
 
 class Enemy{
@@ -67,6 +71,7 @@ class Enemy{
         this.side = 0;
         this.move = true;
         this.count = 0;
+        this.die = false;
     }
 }
 
@@ -76,6 +81,7 @@ Enemy.prototype.run = function(){
 
     if(pos[0] >10 && pos[0] < 17 && pos[1] > 10 && pos[1] < 16 ){
         this.mode = "born";
+        this.die = false;
     }
 
     if(this.mode == "atack"){ // em ataque
@@ -175,6 +181,7 @@ Enemy.prototype.turn_down = function(){
 
 function preload(){
     font = loadFont('press_start.ttf');
+    hi = loadJSON('hiscore.json');
 }
 
 function setup() {
@@ -184,9 +191,9 @@ function setup() {
     textFont(font);
     fillBoard();
     for(let i=0; i<4; i++){ // fill enemys
-//        enemys.push(new Enemy(0 , 0 ,i));
         enemys.push(new Enemy(bd.x + bd.p * (12 + i) , bd.y + bd.p * 13,i));
     }
+
 }
 
 function draw() {
@@ -264,35 +271,51 @@ function restart(){
     if(pacman.lifes >= 0){
         pacman.x = bd.x + bd.p * 13.5;
         pacman.y = bd.y + bd.p * 23;
-        pacman.dying = false;
+        pacman.die = false;
         pacman.count = 0;
         pacman.side = 0;
-        pacman.mov_x = 0;
-        pacman.mov_y = 0;
         for(let i=0; i<4; i++){ // fill enemys
             enemys[i].x = bd.x + bd.p * (12 + i);
             enemys[i].y = bd.y + bd.p * 13;
-            enemys.mode = "born";
-            console.log(enemys[i]);
+            enemys[i].mode = "born";
+            enemys[i].die = false;
         }
         pause = false;
     }else{
         fill(255,0,0);
         text("GAME OVER", bd.x + bd.p * 8.6, bd.y + bd.p * 14.6, 200, 150);
+        save_hiscore();
     }
 
+}
+
+function save_hiscore(){
+    if(new_hiscore){
+        new_hiscore = false;
+        const data = new URLSearchParams();
+        data.append('key','senha123');
+        data.append('scores',JSON.stringify(hi));
+        const myRequest = new Request('save_hiscores.php',{
+            method: 'POST',
+            body: data
+        });                
+        fetch(myRequest);
+    }
 }
 
 function hit(N){
     if((pacman.x + pacman.rad >= enemys[N].x - enemys[N].rad/2) && (pacman.x - pacman.rad <= enemys[N].x + enemys[N].rad/2)){
         if((pacman.y + pacman.rad >= enemys[N].y - enemys[N].rad/2) && (pacman.y - pacman.rad <= enemys[N].y + enemys[N].rad/2)){
-            console.log("hit -> "+N);
             if(enemys[N].mode != "runaway"){
-                pacman.dying = true;
+                pacman.die = true;
+                pacman.mov_x = 0;
+                pacman.mov_y = 0;        
             }else{
-
+                if(!enemys[N].die){
+                    enemys[N].die = true;
+                    pacman.score += 300;
+                }
             }
-            pause = true;                                
         }
     }
 
@@ -336,12 +359,14 @@ function drawBord(weigth=pixel, filler=false){
 
 function fillBoard(){
     background(0, 0, 0);
-    squares.push([7,9,13,10]);
+    last_dots = 0;
+    squares.splice(squares.length-1,1); // deleta o quadrado da borda
+    squares.push([7,9,13,10]);  // adiciona os quadrados de limpeza do centro do tabuleiro
     squares.push([0,9,5,10]);
     squares.push([13,23,2,2]);
     drawBord(6,true);
-    squares.splice(squares.length-3,3);
-    squares.push([0,0,27,30]);
+    squares.splice(squares.length-3,3); // remove os quadrados de limpeza do centro do tabuleiro
+    squares.push([0,0,27,30]); // coloca novamente o quadrado da borda
     dots = [[]];
     for(let y=1; y<=29; y++){
         dots.push([]);
@@ -349,6 +374,7 @@ function fillBoard(){
             let color = get(bd.x + x * bd.p , bd.y + y * bd.p);
             if(color[2] == 0){
                 dots[y].push(x);
+                last_dots += 1;
             }
         }
     }
@@ -366,9 +392,19 @@ function placar(){
     text("LIFES"      , 550, 300, 200, 150);
 
     fill(255,255,255); // BRANCO
-    text(zeroPad(hiscore,8)     , 550, 130, 200, 150);
+    text(zeroPad(hi.score,8)     , 550, 130, 200, 150);
     text(zeroPad(pacman.score,8), 550, 230, 200, 150);
     
+    if(parseInt(pacman.score) >= next_life){
+        pacman.lifes +=1;
+        next_life += 10000;
+    }
+
+    if(parseInt(pacman.score) > parseInt(hi.score)){
+        hi.score = pacman.score;
+        new_hiscore = true;
+    }
+
     fill(255,255,0); // AMARELO
     for(let i=0; i<pacman.lifes; i++){
         arc(560 + (i * 25),330, 20, 20, 0.5, PI * 1.8  , PIE);
@@ -391,12 +427,12 @@ function mirror(T,D,C){
 
 }
 
-function drawDots(diam = 2){
+function drawDots(diam = 1){
     noFill();
+    stroke(255,255,0);
     for(let y=0; y<dots.length; y++){
         for(let x=0; x<dots[y].length;x++){
             circle(bd.x + dots[y][x] * bd.p , bd.y + y* bd.p,diam);
-
             if(y == 3 || y == 28){
                 if(dots[y][x] == 1 || dots[y][x] == 26){
                     stroke(bd.pill);
@@ -408,13 +444,28 @@ function drawDots(diam = 2){
     }
 }
 
+function wall(obj){
+    const offset = 0.5;
+    const edges = [[obj.x + (obj.rad + offset),obj.y],[obj.x , obj.y - (obj.rad + offset)],[obj.x - (obj.rad + offset),obj.y],[obj.x , obj.y + (obj.rad + offset)]];
+    let response = [];
+
+    for(let i=0; i<edges.length; i++){
+        if(get(edges[i][0],edges[i][1])[2] != 0){
+            response.push(true);
+        }else{
+            response.push(false);
+        }
+    }
+    return response;
+}
+
 function drawPacman(){
 
     fill(pacman.color);
     stroke(255,255,0);
     strokeWeight(pixel);
     ellipseMode(CENTER);
-    if(pacman.dying){
+    if(pacman.die){
         if(pacman.count < 1){
             pacman.count += 0.01;
             arc(pacman.x,pacman.y, pacman.rad, pacman.rad, (1.5 + pacman.count) * PI  , (1.5 - pacman.count) * PI  , PIE);
@@ -435,25 +486,9 @@ function drawPacman(){
 
     if(pacman.mounth >=0.4){
         pacman.open = false;
-    }
-    if(pacman.mounth <=0.13){
+    }else if(pacman.mounth <=0.13){
         pacman.open = true;
     }
-}
-
-function wall(obj){
-    const offset = 0.5;
-    const edges = [[obj.x + (obj.rad + offset),obj.y],[obj.x , obj.y - (obj.rad + offset)],[obj.x - (obj.rad + offset),obj.y],[obj.x , obj.y + (obj.rad + offset)]];
-    let response = [];
-
-    for(let i=0; i<edges.length; i++){
-        if(get(edges[i][0],edges[i][1])[2] != 0){
-            response.push(true);
-        }else{
-            response.push(false);
-        }
-    }
-    return response;
 }
 
 function move(){    
@@ -488,12 +523,18 @@ function eat(){
     if(found >= 0){
         pacman.score += 10;
         dots[pos[1]].splice(found,1);
+        last_dots -= 1;
         if((pos[0] == 1 || pos[0] == 26) && (pos[1] == 3 || pos[1] == 28)){ // pill      
             pacman.score += 40;
             for(let i=0; i<enemys.length; i++){ 
                 enemys[i].mode = "runaway" ;
             }
-        }        
+        }
+        if(last_dots <= 0){            
+            fillBoard();
+            restart();
+            save_hiscore();
+        }
     }
 }
 
@@ -510,37 +551,43 @@ function drawGhost(){
         fill(color);
         noStroke();
     
-        for(let i=0; i<phanton.body.length; i++){
-            mirror("R",[ght.x+phanton.body[i][0],ght.y+phanton.body[i][1],phanton.body[i][2],phanton.body[i][3]],ght.x);
-        }
-    
-        for(let i=0; i<phanton.skirt1.length; i++){
-            if(ght.move){
-                mirror("R",[ght.x+phanton.skirt1[i][0],ght.y+phanton.skirt1[i][1],phanton.skirt1[i][2],phanton.skirt1[i][3]],ght.x);
-            }else{
-                mirror("R",[ght.x+phanton.skirt2[i][0],ght.y+phanton.skirt2[i][1],phanton.skirt2[i][2],phanton.skirt2[i][3]],ght.x);
-            }
+        if(!ght.die){
 
-            ght.count++;
-            if(ght.count ==10){
-                ght.count = 0;
-                ght.move = !ght.move;
+            for(let i=0; i<phanton.body.length; i++){
+                mirror("R",[ght.x+phanton.body[i][0],ght.y+phanton.body[i][1],phanton.body[i][2],phanton.body[i][3]],ght.x);
             }
-
+        
+            for(let i=0; i<phanton.skirt1.length; i++){
+                if(ght.move){
+                    mirror("R",[ght.x+phanton.skirt1[i][0],ght.y+phanton.skirt1[i][1],phanton.skirt1[i][2],phanton.skirt1[i][3]],ght.x);
+                }else{
+                    mirror("R",[ght.x+phanton.skirt2[i][0],ght.y+phanton.skirt2[i][1],phanton.skirt2[i][2],phanton.skirt2[i][3]],ght.x);
+                }
+    
+                ght.count++;
+                if(ght.count ==10){
+                    ght.count = 0;
+                    ght.move = !ght.move;
+                }
+    
+            }
+        
+            fill(255);        
+            for(let i=0; i<phanton.eye.length; i++){
+                mirror("R",[ght.x+phanton.eye[i][0],ght.y+phanton.eye[i][1],phanton.eye[i][2],phanton.eye[i][3]],ght.x-3);
+            }
+        
         }
-    
-        fill(255);
-    
+
+        fill(255);    
         for(let i=0; i<phanton.eye.length; i++){
             mirror("R",[ght.x+phanton.eye[i][0],ght.y+phanton.eye[i][1],phanton.eye[i][2],phanton.eye[i][3]],ght.x-3);
         }
-    
-        fill(0);
-    
+
+        fill(0);        
         for(let i=0; i<phanton.look.length; i++){
             mirror("R",[ght.x+phanton.look[i][0],ght.y+phanton.look[i][1],phanton.look[i][2],phanton.look[i][3]],ght.x-3);
         }
-    
     }
 
     for(let i=0; i<enemys.length; i++){
